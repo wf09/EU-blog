@@ -1,0 +1,38 @@
+name: Blog CI/CD
+
+on:
+  push:
+    branches: [ master ]
+env:
+  TZ: Asia/Shanghai
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Use Node.js lts
+      uses: actions/setup-node@v2-beta
+      with:
+        node-version: '12.x'
+    
+        
+    - name: Install Dependencies
+      run: |
+        npm i hexo-cli hexo-generator-sitemap hexo-generator-feed -g
+        npm i
+       
+    - name: Generate files
+      run: hexo generate
+      
+    - name: Deploy to Github
+      run: |
+        git clone "https://${{ secrets.GH_REF }}" deploy_git
+        cp -r ./deploy_git/.git ./public/
+        cd ./public
+        git config user.name "wf09"
+        git config user.email "docker@88.com"
+        git add .
+        git commit -m "GitHub Actions Auto Builder at $(date +'%Y-%m-%d %H:%M:%S')"
+        git push --force --quiet "https://${{ secrets.GH_TOKEN }}@${{ secrets.GH_REF }}" master:master
+        curl -H "Content-Type:application/json" -X POST --data '{"text": "Blogs 'fly97.eu.org' has deployed to Github. "}' https://message.us-south.cf.appdomain.cloud/news
